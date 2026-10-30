@@ -361,6 +361,14 @@ Build trust plumbing first, then the engine, then knowledge, then the full produ
 
 **First milestone (laptop, no Kubernetes):** in a Claude Code session, start a Baton workflow, have the agent pull context from Knowtorious, and confirm Baton will not pass the approval node until a different principal (the human) signs off.
 
+**Junto builds itself.** The goal is for Junto to be built with Junto as we go, starting with Baton and Knowtorious v0.1. Each phase moves more of our own development onto the platform, so every gap we hit becomes an issue against Junto.
+
+| From | Junto is built with | What changes |
+| --- | --- | --- |
+| Baton and Knowtorious v0.1 (first milestone) | Baton workflows, context from Knowtorious | Every Junto change runs as a Baton workflow, and Baton, not just branch protection, refuses to pass approval without a second principal. Decisions and RFCs live in a Knowtorious vault. |
+| Phase 0 gate | Ledger and Broker | Every Junto PR carries a signed evidence bundle, and agents push through the Broker instead of holding GitHub tokens. |
+| Phase 2 | Warden trust records | Our own development history is the first real data for trust scores, informing the trust score open question. |
+
 ## Open questions and decisions
 
 - [x] **Baton's home.** Decided: import Spektacular into `junto-labs/baton` and rebuild it. Open: whether to offer the generic engine back to hivecommons later.
@@ -379,4 +387,3 @@ Build trust plumbing first, then the engine, then knowledge, then the full produ
 - [hivecommons/hive](https://github.com/hivecommons/hive): README and `src/docs` (security-model, acmm-policy-matrix, contributor-trust-and-roles, knowledge-*, kubernetes-deployment, github-write-surface, evidence)
 - [hivecommons/crux](https://github.com/hivecommons/crux): README and `defs`, `kubejob`, `proxy`, `agent/terminal.go`
 - [hivecommons/spektacular](https://github.com/hivecommons/spektacular): README
-- [Rex docs](https://www.superlogical.com/rex/docs/installation) and [Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status)
