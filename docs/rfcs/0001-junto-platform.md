@@ -257,7 +257,7 @@ Kubernetes is one place to run the components, not a requirement. On a cluster, 
 
 **Per-agent isolation.** Hive runs every agent as a tmux session in one pod. Here each `AgentRun` is its own Pod with its own ServiceAccount, NetworkPolicy allowing egress only to the Broker and model gateway, and no forge credentials. Crux's `kubejob` sandbox is the seed of this.
 
-**Crux terminal backends.** Crux has a partial `TerminalSession` interface (`agent/terminal.go`) for reading panes and sending keys, but 58 non-test files reference tmux and 24 call sites run tmux lifecycle commands directly. Widening that interface to cover session lifecycle (create, kill, set environment, stream logs) lets tmux stay the default and leaves room for other backends, such as [Rex](https://www.superlogical.com/rex/docs/installation), as a later improvement. Crux should also parse the Program Status Protocol (`OSC 7501`) from the output stream on any backend, replacing screen-scraped agent state with structured `working` / `blocked` / `done` / `error` reports.
+**Crux terminal backends.** Crux has a partial `TerminalSession` interface (`agent/terminal.go`) for reading panes and sending keys, but 58 non-test files reference tmux and 24 call sites run tmux lifecycle commands directly. Widening that interface to cover session lifecycle (create, kill, set environment, stream logs) lets tmux stay the default and leaves room for other backends as a later improvement. Crux should also parse the Program Status Protocol (`OSC 7501`) from the output stream on any backend, replacing screen-scraped agent state with structured `working` / `blocked` / `done` / `error` reports.
 
 ## Baton on Kubernetes
 
