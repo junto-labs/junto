@@ -92,7 +92,7 @@ spec:
 
 A separate **ActorBinding** decides who fulfils a contract in a given namespace. It names a persona, a pool (team, agent definition) and the trust conditions under which it may be promoted or demoted. This is Hive's ACMM level, made granular: one team can run triage at Agent level while release approval stays Human.
 
-Outputs are never written straight to GitHub, Linear or a support desk. The actor returns a typed result; the platform's broker performs the side effect. That is how Hive's write relays already work.
+Outputs are never written straight to an external system (in the SDLC packs: GitHub, Linear or a support desk). The actor returns a typed result; the platform's broker performs the side effect. That is how Hive's write relays already work.
 
 ## Trust model
 
@@ -105,11 +105,11 @@ Trust is built from four layers, and each layer is enforced by a component, not 
 | Containment | What can go wrong if the actor misbehaves? | Pod per agent run, egress broker, input scanning, no direct write credentials | `crux/proxy`, `pkg/writeback`, `pkg/ioscan`, `crux/kubejob` |
 | Evidence | Can we prove what happened? | Signed, hash-chained evidence bundle per transition | `pkg/evidence`, audit log |
 
-**Earned autonomy.** Each (actor, contract) pair has a trust record computed from its evidence: approval rate, rework rate, reverts, escalations and gate overrides. Promotion (e.g. Assisted to Agent for triage) needs a human approval and is recorded. Demotion is automatic when the score drops below the binding's floor.
+**Earned autonomy.** Each (actor, contract) pair has a trust record computed from its evidence: approval rate, rework rate, escalations and gate overrides, plus any domain signals a pack adds (the SDLC packs add reverts). Promotion (e.g. Assisted to Agent for triage) needs a human approval and is recorded. Demotion is automatic when the score drops below the binding's floor.
 
 This fixes two gaps that Hive's own security model lists: trust tiers never decay, and trust is set per installation rather than per task. It also turns Hive's README metrics (65.5% of returned PRs later approved) into a per-step, per-persona signal that the platform acts on.
 
-**Four-eyes is a platform rule.** Baton's decision nodes require an approver whose principal differs from the author's. For irreversible steps (merge to main, customer-visible reply, production deploy) the approver must be a Human or Assisted actor until a policy explicitly says otherwise.
+**Four-eyes is a platform rule.** Baton's decision nodes require an approver whose principal differs from the author's. For steps whose contract is marked `irreversible: true` (in the SDLC packs: merge to main, customer-visible reply, production deploy) the approver must be a Human or Assisted actor until a policy explicitly says otherwise.
 
 ## Decomposing Hive into components
 
@@ -159,10 +159,10 @@ Baton drives every run; it asks Warden before each step and records the result i
 | **Warden** | Policy decisions, trust records, autonomy bindings, intent checks | ACMM packs, `pkg/intent`, `pkg/decisionpolicy`, `pkg/holdguard`, `pkg/sentinel`, contributor tiers | Extract |
 | **Broker** | The only component holding write credentials; performs side effects | `pkg/writeback`, write relays, `crux/proxy`, `crux/pushbroker`, `pkg/apiproxy` | Extract |
 | **Ledger** | Signed evidence bundles and audit trail | `pkg/evidence`, `pkg/agentaudit`, `pkg/compliance`, dashboard audit | Extract |
-| **Intake** | Pull work from forges and desks, dedupe, claim | `pkg/worksource`, `pkg/claims`, `pkg/issueclaim`, `pkg/classify`, `pkg/dupsweep` | Extract |
+| **Intake** | Pull work items from external systems, dedupe, claim | `pkg/worksource`, `pkg/claims`, `pkg/issueclaim`, `pkg/classify`, `pkg/dupsweep` | Extract |
 | **Governor** | Capacity, budgets, fair share, priority | `pkg/governor`, `pkg/tokens`, `pkg/scheduler` | Extract |
 | **Inbox** | Human surface: tasks waiting on a person, approvals, overrides | `pkg/dashboard` | Rebuild on the new API |
-| **Adapters** | GitHub, Linear, Jira, support desk, chat | `pkg/github`, `pkg/forge`, `pkg/linearagent`, `pkg/notify` | Extract; add support desk |
+| **Adapters** | Connect external systems; the first set (for SDLC) is GitHub, Linear, Jira, a support desk and chat | `pkg/github`, `pkg/forge`, `pkg/linearagent`, `pkg/notify` | Extract; add support desk |
 
 **Existing hivecommons tools, reused**
 
@@ -181,7 +181,7 @@ Each component lives in its own repo in the `junto-labs` org. Each one is a sing
 1. **One job, one binary.** `baton` tracks workflow state, `knowtorious` serves scoped knowledge, `ledger` records evidence. None of them does another's job.
 2. **No imports between components.** The shared vocabulary lives in `junto-spec`, a repo that holds only JSON Schemas (Actor, InteractionContract, Evidence, WorkItem, event types). Each component validates against it and nothing else.
 3. **Text in, JSON out.** Every command reads files or stdin and writes human text by default, `--json` on request. Exit code 0 means pass, 1 means fail, 2 means usage error. Any tool can then act as a Baton gate.
-4. **Plain files first.** Default state is a folder in the repo (`.baton/`, `.knowtorious/`) that you can diff and review. Postgres, object storage or CRDs are opt-in backends behind the same interface.
+4. **Plain files first.** Default state is a local folder (`.baton/`, `.knowtorious/`, in the repo by default) that you can diff and review. Postgres, object storage or CRDs are opt-in backends behind the same interface.
 5. **Absent neighbours are fine.** With no Warden, Baton reads a local policy file. With no Ledger, evidence goes to a JSONL file. With no Broker, side effects are printed as a plan for a human to run.
 6. **Four faces, one core.** Each binary has a CLI, an `mcp` subcommand that serves the same operations to agents, a Claude Code plugin, and optionally a `controller` subcommand with a Helm chart.
 
@@ -195,7 +195,7 @@ Each component lives in its own repo in the `junto-labs` org. Each one is a sing
 | `warden` | Extracted from Hive (later) | Policy decisions and trust records | `warden check` with an exit code | Optional hook that blocks disallowed tools |
 | `ledger` | Extracted from Hive (later) | Append and verify signed evidence | `ledger append`, `ledger verify` on JSONL | Optional hook that records each step |
 | `broker` | Extracted from Hive (later) | Perform side effects with held credentials | `broker do request.json` | Not exposed to agents |
-| `intake` | Extracted from Hive (later) | Pull work from forges and desks | `intake pull linear` to JSONL | Optional MCP |
+| `intake` | Extracted from Hive (later) | Pull work items from external systems | `intake pull linear` to JSONL | Optional MCP |
 | `junto-spec` | New | Shared schemas only | n/a | n/a |
 | `junto` | New | Assembly and project docs: Helm umbrella chart, Claude Code plugin marketplace, example stacks, RFCs | n/a | Marketplace of all plugins |
 
@@ -234,7 +234,7 @@ knowtorious search 'refund policy' --space support/runbooks --json \
 baton log --run r-42 --json | ledger append --stream runs/r-42
 ```
 
-**Inside Claude Code.** Installing the `baton` plugin adds a skill that teaches the loop (`baton next`, do the step, `baton pass`), slash commands such as `/baton start` and `/baton status`, and an MCP server so the agent calls Baton directly. The human in the session is the Assisted actor; Baton's four-eyes rule still applies, so an agent's `pass` on a decision node waits for the human's approval. The `knowtorious` plugin adds an MCP server with `list`, `get` and `search` tools (`propose` follows in v1) and a session-start hook that loads a table of contents of entry ids and titles, never entry content. Its local vault uses Spektacular's knowledge folders (architecture, conventions, decisions, glossary, gotchas, learnings), so existing `.spektacular/knowledge` content imports unchanged.
+**Inside Claude Code.** Installing the `baton` plugin adds a skill that teaches the loop (`baton next`, do the step, `baton pass`), slash commands such as `/baton start` and `/baton status`, and an MCP server so the agent calls Baton directly. The human in the session is the Assisted actor; Baton's four-eyes rule still applies, so an agent's `pass` on a decision node waits for the human's approval. The `knowtorious` plugin adds an MCP server with `list`, `get` and `search` tools (`propose` follows in v1) and a session-start hook that loads a table of contents of entry ids and titles, never entry content. The vault imposes no folder layout or entry types; existing `.spektacular/knowledge` content (architecture, conventions, decisions, glossary, gotchas, learnings) imports as one mapping.
 
 ## Kubernetes API: CRDs and controllers
 
@@ -249,7 +249,7 @@ Kubernetes is one place to run the components, not a requirement. On a cluster, 
 | `InteractionContract` | Baton | Inputs, outputs, evidence, allowed personas for one step |
 | `Workflow` | Baton | A graph of nodes referencing contracts; installable as packs |
 | `WorkflowRun` | Baton | One execution; status holds current node and tracked items |
-| `WorkItem` | Intake | A unit of work mirrored from GitHub, Linear, Jira or a support desk |
+| `WorkItem` | Intake | A unit of work mirrored from an external system of record (e.g. GitHub, Linear, Jira, a support desk) |
 | `AgentDefinition` | Crux | Backend, model, tools; same YAML as today |
 | `AgentRun` | Crux | One agent session for one task, run as a Pod or Job |
 | `KnowledgeSpace`, `KnowledgeSource`, `KnowledgeGrant` | Knowtorious | Spaces, connectors and who can read or write them |
@@ -258,7 +258,7 @@ Kubernetes is one place to run the components, not a requirement. On a cluster, 
 
 **Controllers.** Each component's controller mode is a controller-runtime operator shipped as its own Helm chart and image, so a team can adopt Crux or Knowtorious alone. One umbrella chart installs the whole platform. Events travel as CloudEvents on NATS so components stay decoupled.
 
-**Per-agent isolation.** Hive runs every agent as a tmux session in one pod. Here each `AgentRun` is its own Pod with its own ServiceAccount, NetworkPolicy allowing egress only to the Broker and model gateway, and no forge credentials. Crux's `kubejob` sandbox is the seed of this.
+**Per-agent isolation.** Hive runs every agent as a tmux session in one pod. Here each `AgentRun` is its own Pod with its own ServiceAccount, NetworkPolicy allowing egress only to the Broker and model gateway, and no credentials for external systems. Crux's `kubejob` sandbox is the seed of this.
 
 **Crux terminal backends.** Crux has a partial `TerminalSession` interface (`agent/terminal.go`) for reading panes and sending keys, but 58 non-test files reference tmux and 24 call sites run tmux lifecycle commands directly. Widening that interface to cover session lifecycle (create, kill, set environment, stream logs) lets tmux stay the default and leaves room for other backends as a later improvement. Crux should also parse the Program Status Protocol (`OSC 7501`) from the output stream on any backend, replacing screen-scraped agent state with structured `working` / `blocked` / `done` / `error` reports.
 
