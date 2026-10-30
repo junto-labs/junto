@@ -231,7 +231,7 @@ knowtorious search 'refund policy' --space support/runbooks --json \
 baton log --run r-42 --json | ledger append --stream runs/r-42
 ```
 
-**Inside Claude Code.** Installing the `baton` plugin adds a skill that teaches the loop (`baton next`, do the step, `baton pass`), slash commands such as `/baton start` and `/baton status`, and an MCP server so the agent calls Baton directly. The human in the session is the Assisted actor; Baton's four-eyes rule still applies, so an agent's `pass` on a decision node waits for the human's approval. The `knowtorious` plugin adds an MCP server with `search`, `get` and `propose` tools and a session-start hook that loads a short primer. Its local vault uses Spektacular's knowledge folders (architecture, conventions, decisions, glossary, gotchas, learnings), so existing `.spektacular/knowledge` content imports unchanged.
+**Inside Claude Code.** Installing the `baton` plugin adds a skill that teaches the loop (`baton next`, do the step, `baton pass`), slash commands such as `/baton start` and `/baton status`, and an MCP server so the agent calls Baton directly. The human in the session is the Assisted actor; Baton's four-eyes rule still applies, so an agent's `pass` on a decision node waits for the human's approval. The `knowtorious` plugin adds an MCP server with `list`, `get` and `search` tools (`propose` follows in v1) and a session-start hook that loads a table of contents of entry ids and titles, never entry content. Its local vault uses Spektacular's knowledge folders (architecture, conventions, decisions, glossary, gotchas, learnings), so existing `.spektacular/knowledge` content imports unchanged.
 
 ## Kubernetes API: CRDs and controllers
 
@@ -300,6 +300,8 @@ spec:
 
 Knowtorious takes Hive's knowledge store (fact types, layers, lifecycle, confidence, connectors) and adds what it lacks: per-person and per-group access control, classification, and an audited read path for every actor.
 
+**Requirement: the right context at the right time.** Loading too much knowledge into a session causes drift: the agent follows stale or irrelevant guidance instead of the task. So the session-start primer stays a table of contents (entry ids and titles, no content), agents fetch entries only when they need them, and each Interaction Contract names the knowledge its step needs. Knowledge does not belong in `AGENTS.md` or `CLAUDE.md`.
+
 **Model**
 
 - **Space**: a tree that mirrors the org (org, product, team, repo, personal). Replaces Hive's four fixed layers.
@@ -349,25 +351,27 @@ The starting personas below are conservative: agents draft, humans approve anyth
 
 ## Roadmap
 
-Build trust plumbing first, then the engine, then knowledge, then the full product-to-support loop; each phase ends at a gate we can demo, not a date.
+Start with a thin, read-only Knowtorious, then the engine, then governed knowledge, then the full product-to-support loop; each phase ends at a gate we can demo, not a date.
 
 | Phase | Scope | Gate |
 | --- | --- | --- |
-| 0 · Foundations | `junto-spec` schemas; Actor, Delegation and ActorBinding; extract Ledger and Broker from Hive; Crux lifecycle interface | One agent action traced end to end, with a signed evidence bundle |
-| 1 · Workflow engine | Baton library, CLI, MCP and Claude Code plugin; InteractionContract; Spektacular's flows as the engineering pack | Spec to merged PR with four-eyes enforced by the platform |
-| 2 · Knowledge and trust | Knowtorious MVP (vault, search, MCP, plugin, Spektacular import), then spaces and grants; Warden trust records with automatic demotion | An agent reads only what its contract declares; bad evidence triggers a demotion |
-| 3 · Full loop | Support and product packs, a support desk adapter, WorkItem links; Intake and Governor extracted | A ticket becomes a fix and the customer is told, on one evidence chain |
-| 4 · Earned autonomy | Human-approved promotions, agent-plus-agent review, parallel nodes, shareable packs; controllers and multi-cluster | Autonomy changes driven by evidence, not configuration |
+| 1 · Knowtorious v0 | Read-only `list` / `get` / `search` over the `.knowtorious/` markdown vault, with `--json`; an MCP server with the same three operations; a Claude Code plugin whose session-start primer is only a table of contents (entry ids and titles, no content); import from `.spektacular/knowledge` | An agent completes a task by fetching only the entries it needs, with no knowledge in `AGENTS.md` or `CLAUDE.md` |
+| 2 · Baton | Rebuild from Spektacular: library, CLI, MCP and Claude Code plugin; InteractionContract; Spektacular's flows as the engineering pack; add to `junto-spec` only the schemas Baton actually needs (e.g. Actor, Evidence) | Spec to merged PR with four-eyes enforced by the platform |
+| 3 · Knowtorious v1 | Agents `propose` drafts that are approved through a Baton four-eyes gate; then spaces and grants | No entry is approved by its author; an agent reads only what its contract declares |
+| 4 · Full loop | Support and product packs, a support desk adapter, WorkItem links; Ledger, Broker, Intake and Governor extracted; Crux lifecycle interface | A ticket becomes a fix and the customer is told, on one signed evidence chain |
+| 5 · Earned autonomy | Warden trust records with automatic demotion; human-approved promotions, agent-plus-agent review, parallel nodes, shareable packs; controllers and multi-cluster | Autonomy changes driven by evidence, not configuration |
 
-**First milestone (laptop, no Kubernetes):** in a Claude Code session, start a Baton workflow, have the agent pull context from Knowtorious, and confirm Baton will not pass the approval node until a different principal (the human) signs off.
+**First milestone (laptop, no Kubernetes):** phases 1 and 2. In a Claude Code session, the agent pulls only the Knowtorious entries it needs, works through a Baton workflow, and Baton will not pass the approval node until a different principal (the human) signs off.
 
-**Junto builds itself.** The goal is for Junto to be built with Junto as we go, starting with Baton and Knowtorious v0.1. Each phase moves more of our own development onto the platform, so every gap we hit becomes an issue against Junto.
+**Junto builds itself.** The goal is for Junto to be built with Junto as we go, starting with Knowtorious v0 and Baton. Each phase moves more of our own development onto the platform, so every gap we hit becomes an issue against Junto.
 
 | From | Junto is built with | What changes |
 | --- | --- | --- |
-| Baton and Knowtorious v0.1 (first milestone) | Baton workflows, context from Knowtorious | Every Junto change runs as a Baton workflow, and Baton, not just branch protection, refuses to pass approval without a second principal. Decisions and RFCs live in a Knowtorious vault. |
-| Phase 0 gate | Ledger and Broker | Every Junto PR carries a signed evidence bundle, and agents push through the Broker instead of holding GitHub tokens. |
-| Phase 2 | Warden trust records | Our own development history is the first real data for trust scores, informing the trust score open question. |
+| Phase 1 · Knowtorious v0 | Context from Knowtorious | Junto's decisions, conventions and RFC notes live in a `.knowtorious/` vault, and agents working on Junto fetch them on demand instead of reading `CLAUDE.md`. |
+| Phase 2 · Baton | Baton workflows | Every Junto change runs as a Baton workflow, and Baton, not just branch protection, refuses to pass approval without a second principal. |
+| Phase 3 · Knowtorious v1 | Governed knowledge | Changes to Junto's own knowledge go through `propose` and a four-eyes approval. |
+| Phase 4 | Ledger and Broker | Every Junto PR carries a signed evidence bundle, and agents push through the Broker instead of holding GitHub tokens. |
+| Phase 5 | Warden trust records | Our own development history is the first real data for trust scores, informing the trust score open question. |
 
 ## Open questions and decisions
 
