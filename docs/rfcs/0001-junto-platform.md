@@ -1,4 +1,4 @@
-# RFC 0001: Junto, a trust-first, Kubernetes-native SDLC platform
+# RFC 0001: Junto, a trust-first, Kubernetes-native platform for actor-based workflows
 
 - **Status:** Draft
 - **Author:** Greg
@@ -8,6 +8,8 @@
 
 We split Hive into a set of small, Kubernetes-native services with Crux as the agent runtime, Baton as the workflow engine and a new Knowtorious service for knowledge. Every step in the pipeline is an **Interaction Contract** that any of three actors can fulfil: a Human, a Human with Agent assistance, or an Agent alone.
 
+Junto is a framework for any workflow that humans and agents share; nothing in its core knows about software. The software development lifecycle (SDLC) is the first domain because it is where Hive already proves the model, and because we dogfood Junto by building Junto with it.
+
 Hive already proves the hard parts. It has deterministic guardrails, signed evidence bundles, trust tiers and an autonomy dial (ACMM). But it ships as one daemon in one pod, its stage machine is hard-coded to GitHub labels, and it has no CRDs or operator. Knowledge has per-agent scopes but no per-human or group RBAC.
 
 The proposal keeps Hive's trust ideas and moves them into the platform's API. Trust is decided per interaction point, not per installation. Workflows are config (Baton). State lives in plain files locally and Kubernetes resources on a cluster. Product, engineering and customer support then run as three workflow packs on one control plane.
@@ -16,11 +18,12 @@ Junto is the product and Junto Labs is the company, at juntolabs.dev and GitHub 
 
 ## Goals, non-goals and principles
 
-The goal is one control plane that can run a full SDLC loop, from customer signal to shipped fix, with a verifiable record of who did what and under whose authority.
+The goal is one control plane that can run any actor-based workflow with a verifiable record of who did what and under whose authority. The first proof is a full SDLC loop, from customer signal to shipped fix, run on Junto's own development.
 
 **Goals**
 
-- Run product, engineering and customer support workflows on one platform.
+- Run any workflow shared by humans and agents, with the domain supplied by workflow packs rather than the core.
+- Start with product, engineering and customer support workflows, and use them to build Junto itself.
 - Let every step be done by a Human, an Assisted human or an Agent, chosen per step and changeable without redesign.
 - Be Kubernetes-native: CRDs, controllers, RBAC, namespaces as tenants, GitOps-friendly.
 - Make trust measurable: every transition produces evidence, and autonomy is earned from that evidence.
@@ -329,9 +332,9 @@ The last row is the key trust property. An agent working a support ticket sees `
 
 **Interfaces**: CLI, REST, an MCP server for agents (an authorised version of Hive's public knowledge MCP), and the `KnowledgeSpace`, `KnowledgeSource` and `KnowledgeGrant` CRDs for GitOps.
 
-## The SDLC pipeline: product, engineering, support
+## The first domain: SDLC packs for product, engineering and support
 
-The three functions are three Baton workflow packs joined by `WorkItem` links, so a support ticket can become a product request, then a spec, then a release, and the customer hears back when it ships.
+SDLC is the first domain, not the only one: another domain would ship its own packs on the same core. The three functions are three Baton workflow packs joined by `WorkItem` links, so a support ticket can become a product request, then a spec, then a release, and the customer hears back when it ships.
 
 The starting personas below are conservative: agents draft, humans approve anything irreversible or customer-visible. Each row's persona is an `ActorBinding`, so teams move steps right as trust records justify it.
 
