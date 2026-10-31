@@ -178,7 +178,9 @@ Baton drives every run; it asks Warden before each step and records the result i
 
 ## Repositories and the Unix philosophy
 
-Each component lives in its own repo in the `junto-labs` org. Each one is a single binary that does one job and runs alone on a laptop, in CI, inside Claude Code or on Kubernetes. They connect only through files, JSON, exit codes, events and MCP, never through each other's code.
+Each component is a single binary that does one job and runs alone on a laptop, in CI, inside an agent harness such as Claude Code, or on Kubernetes. Components connect only through files, JSON, exit codes, events and agent protocols, never through each other's code.
+
+**Where a component's code lives.** A separate binary is a rule; a separate repo is a packaging choice. A component starts in the `junto` repo as its own module and binary (`cmd/<name>`), importing only `junto-spec`. It moves to its own repo in the `junto-labs` org once it has users outside Junto or needs its own release cadence. The no-imports rule makes that move cheap. Baton and Knowtorious have their own repos from the start; Warden, Ledger, Broker, Intake, Governor and Inbox start in `junto`.
 
 **The rules every repo follows**
 
@@ -195,12 +197,12 @@ Each component lives in its own repo in the `junto-labs` org. Each one is a sing
 | --- | --- | --- | --- | --- |
 | `baton` | Import of [Spektacular](https://github.com/hivecommons/spektacular), rebuilt | Workflow definitions and run state | `baton next`, `baton pass` over `.baton/` | Plugin: skill, `/baton` commands, MCP |
 | `knowtorious` | New | Scoped, access-controlled knowledge | `knowtorious search` over a markdown vault | Plugin: MCP tools, session-start primer |
-| `warden` | Extracted from Hive (later) | Policy decisions and trust records | `warden check` with an exit code | Optional hook that blocks disallowed tools |
-| `ledger` | Extracted from Hive (later) | Append and verify signed evidence | `ledger append`, `ledger verify` on JSONL | Optional hook that records each step |
-| `broker` | Extracted from Hive (later) | Perform side effects with held credentials | `broker do request.json` | Not exposed to agents |
-| `intake` | Extracted from Hive (later) | Pull work items from external systems | `intake pull linear` to JSONL | Optional MCP |
+| `warden` | Extracted from Hive (later); starts in `junto` | Policy decisions and trust records | `warden check` with an exit code | Optional hook that blocks disallowed tools |
+| `ledger` | Extracted from Hive (later); starts in `junto` | Append and verify signed evidence | `ledger append`, `ledger verify` on JSONL | Optional hook that records each step |
+| `broker` | Extracted from Hive (later); starts in `junto` | Perform side effects with held credentials | `broker do request.json` | Not exposed to agents |
+| `intake` | Extracted from Hive (later); starts in `junto` | Pull work items from external systems | `intake pull linear` to JSONL | Optional MCP |
 | `junto-spec` | New | Shared schemas only | n/a | n/a |
-| `junto` | New | Assembly and project docs: Helm umbrella chart, Claude Code plugin marketplace, example stacks, RFCs | n/a | Marketplace of all plugins |
+| `junto` | New | Assembly and project docs, plus components not yet in their own repo: Helm umbrella chart, Claude Code plugin marketplace, example stacks, RFCs | n/a | Marketplace of all plugins |
 
 Hive itself is forked (archived) as a read-only reference to extract from, along with the small tools we reuse (pluk, promptargs, rationguard). Governor and Inbox come later. All upstreams are Apache-2.0, so the forks keep LICENSE and NOTICE and credit Hive Commons.
 
@@ -383,7 +385,7 @@ Start with a thin, read-only Knowtorious, then the engine, then governed knowled
 
 - [x] **Baton's home.** Decided: import Spektacular into `junto-labs/baton` and rebuild it. Open: whether to offer the generic engine back to hivecommons later.
 - [x] **Where the platform lives.** Decided: independent org `junto-labs`, domain `juntolabs.dev`. Open: how to tell Junto apart from the existing open-source Junto social app.
-- [ ] **Does agent review count as four-eyes?** Proposal: only when the reviewer has a different sponsor and model family, and never for irreversible steps.
+- [ ] **Does agent review count as four-eyes?** Proposal: only when the reviewer has a different sponsor and passes an independence test, and never for irreversible steps. The independence test is configurable policy, not a fixed rule, so it can change as models do; the default today is a different model family.
 - [ ] **Policy language.** CEL everywhere (matches Hive's triggers and PR #105), or CEL for gates plus OPA or Kyverno for admission.
 - [ ] **Evidence store.** Postgres with hash chaining, or a transparency log such as Sigstore Rekor for external verifiability.
 - [ ] **Trust score.** Which signals count, their weights, decay rate, and who approves promotions.
