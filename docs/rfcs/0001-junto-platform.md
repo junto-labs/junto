@@ -6,7 +6,7 @@
 
 ## Summary
 
-We split Hive into a set of small, Kubernetes-native services with Crux as the agent runtime, Baton as the workflow engine and a new Knowtorious service for knowledge. Every step in the pipeline is an **Interaction Contract** that any of three actors can fulfil: a Human, a Human with Agent assistance, or an Agent alone.
+We split Hive into a set of small, Kubernetes-native services, with Baton as the workflow engine and a new Knowtorious service for knowledge. Agents run on an external agent runtime, Crux to start with. Every step in the pipeline is an **Interaction Contract** that any of three actors can fulfil: a Human, a Human with Agent assistance, or an Agent alone.
 
 Junto is a framework for any workflow that humans and agents share; nothing in its core knows about software. The software development lifecycle (SDLC) is the first domain because it is where Hive already proves the model, and because we dogfood Junto by building Junto with it.
 
@@ -113,7 +113,9 @@ This fixes two gaps that Hive's own security model lists: trust tiers never deca
 
 ## Decomposing Hive into components
 
-Hive breaks cleanly into ten components. Crux already stands alone, Baton and Knowtorious are new, and the other seven are extracted from Hive's packages. Names other than Crux, Baton and Knowtorious are working names.
+Hive breaks cleanly into nine Junto components plus an agent runtime. Baton and Knowtorious are new, and the other seven are extracted from Hive's packages. Names other than Baton and Knowtorious are working names.
+
+The agent runtime is not a Junto component. Junto uses [Crux](https://github.com/hivecommons/crux) the way it uses Kubernetes: we depend on it and help it mature by contributing upstream, but Junto Labs does not own it. Junto keeps its use of Crux behind a narrow seam (`AgentDefinition` in, `AgentRun` status and evidence out) so another runtime could replace it; that interchangeability is a design aim, not a v1 requirement.
 
 ```mermaid
 flowchart TB
@@ -127,7 +129,7 @@ flowchart TB
     W[Warden<br/>policy and trust records]
     B[Baton<br/>workflows, runs, contracts]
     L[Ledger<br/>signed evidence and audit]
-    C[Crux<br/>one Pod per agent run]
+    C[Agent runtime: Crux, external<br/>one Pod per agent run]
     K[Knowtorious<br/>knowledge by grant]
     I[Intake<br/>work items, claims]
     GV[Governor<br/>budgets, priority]
@@ -154,7 +156,7 @@ Baton drives every run; it asks Warden before each step and records the result i
 | Component | Responsibility | Extract from Hive | Status |
 | --- | --- | --- | --- |
 | **Baton** | Workflow definitions and run state; node types task, decision, gate, wait | `pkg/stageengine`, `pkg/beads`, `pkg/planning`, `pkg/celtrigger`, `pkg/hooks` | Fork and rebuild of Spektacular |
-| **Crux** | Agent runtime: launch, kick, watchdog, sandbox | `src/crux` (already split out) | Exists; needs a controller |
+| **Agent runtime** (Crux, external) | Launch, kick, watchdog, sandbox | `src/crux` (already split out) | Used, not owned; improvements go upstream |
 | **Knowtorious** | Knowledge spaces, RBAC, lifecycle, connectors, MCP | `pkg/knowledge`, `pkg/codeindex`, `pkg/housestyle` | New |
 | **Warden** | Policy decisions, trust records, autonomy bindings, intent checks | ACMM packs, `pkg/intent`, `pkg/decisionpolicy`, `pkg/holdguard`, `pkg/sentinel`, contributor tiers | Extract |
 | **Broker** | The only component holding write credentials; performs side effects | `pkg/writeback`, write relays, `crux/proxy`, `crux/pushbroker`, `pkg/apiproxy` | Extract |
@@ -191,7 +193,6 @@ Each component lives in its own repo in the `junto-labs` org. Each one is a sing
 | --- | --- | --- | --- | --- |
 | `baton` | Import of [Spektacular](https://github.com/hivecommons/spektacular), rebuilt | Workflow definitions and run state | `baton next`, `baton pass` over `.baton/` | Plugin: skill, `/baton` commands, MCP |
 | `knowtorious` | New | Scoped, access-controlled knowledge | `knowtorious search` over a markdown vault | Plugin: MCP tools, session-start primer |
-| `crux` | Fork of [hivecommons/crux](https://github.com/hivecommons/crux) | Run and supervise agent sessions | `crux run`, `crux serve` (already) | Not needed; it runs Claude Code |
 | `warden` | Extracted from Hive (later) | Policy decisions and trust records | `warden check` with an exit code | Optional hook that blocks disallowed tools |
 | `ledger` | Extracted from Hive (later) | Append and verify signed evidence | `ledger append`, `ledger verify` on JSONL | Optional hook that records each step |
 | `broker` | Extracted from Hive (later) | Perform side effects with held credentials | `broker do request.json` | Not exposed to agents |
@@ -205,18 +206,18 @@ Hive itself is forked (archived) as a read-only reference to extract from, along
 
 | What | Address |
 | --- | --- |
-| Go modules (vanity import path) | `juntolabs.dev/baton`, `juntolabs.dev/knowtorious`, `juntolabs.dev/crux` |
+| Go modules (vanity import path) | `juntolabs.dev/baton`, `juntolabs.dev/knowtorious` |
 | Kubernetes API group | `juntolabs.dev` (e.g. `juntolabs.dev/v1alpha1`) |
 | Docs, Helm charts, Claude Code plugin marketplace | served from `juntolabs.dev` |
 
-A vanity path needs a small redirect page per module on the domain, pointing at `github.com/junto-labs/<repo>`. Crux keeps its upstream module path (`github.com/hivecommons/crux`) while we still merge from upstream.
+A vanity path needs a small redirect page per module on the domain, pointing at `github.com/junto-labs/<repo>`. Crux is not in the `junto-labs` org and keeps its own module path (`github.com/hivecommons/crux`).
 
 **Subsets that work on their own**
 
 | Who | Components | State lives in |
 | --- | --- | --- |
 | Solo developer in Claude Code | `baton` + `knowtorious` plugins | Files in the repo |
-| Team running agents on a VM | + `crux`, `ledger`, `broker` | Files plus a JSONL evidence log |
+| Team running agents on a VM | + an agent runtime (`crux`), `ledger`, `broker` | Files plus a JSONL evidence log |
 | Governed team | + `warden`, `intake` | Shared Postgres, SSO |
 | Full platform | All, in controller mode | Kubernetes CRDs plus stores |
 
@@ -250,17 +251,17 @@ Kubernetes is one place to run the components, not a requirement. On a cluster, 
 | `Workflow` | Baton | A graph of nodes referencing contracts; installable as packs |
 | `WorkflowRun` | Baton | One execution; status holds current node and tracked items |
 | `WorkItem` | Intake | A unit of work mirrored from an external system of record (e.g. GitHub, Linear, Jira, a support desk) |
-| `AgentDefinition` | Crux | Backend, model, tools; same YAML as today |
-| `AgentRun` | Crux | One agent session for one task, run as a Pod or Job |
+| `AgentDefinition` | Agent runtime (Crux) | Backend, model, tools; same YAML as today |
+| `AgentRun` | Agent runtime (Crux) | One agent session for one task, run as a Pod or Job |
 | `KnowledgeSpace`, `KnowledgeSource`, `KnowledgeGrant` | Knowtorious | Spaces, connectors and who can read or write them |
 
 **Where data lives.** CRDs hold desired state and small status. Etcd is not a database, so evidence goes to an append-only store (Postgres plus object storage), knowledge to Knowtorious's own store, and transcripts to object storage. A CRD status links to them by digest.
 
-**Controllers.** Each component's controller mode is a controller-runtime operator shipped as its own Helm chart and image, so a team can adopt Crux or Knowtorious alone. One umbrella chart installs the whole platform. Events travel as CloudEvents on NATS so components stay decoupled.
+**Controllers.** Each component's controller mode is a controller-runtime operator shipped as its own Helm chart and image, so a team can adopt Baton or Knowtorious alone. One umbrella chart installs the whole platform. Events travel as CloudEvents on NATS so components stay decoupled.
 
 **Per-agent isolation.** Hive runs every agent as a tmux session in one pod. Here each `AgentRun` is its own Pod with its own ServiceAccount, NetworkPolicy allowing egress only to the Broker and model gateway, and no credentials for external systems. Crux's `kubejob` sandbox is the seed of this.
 
-**Crux terminal backends.** Crux has a partial `TerminalSession` interface (`agent/terminal.go`) for reading panes and sending keys, but 58 non-test files reference tmux and 24 call sites run tmux lifecycle commands directly. Widening that interface to cover session lifecycle (create, kill, set environment, stream logs) lets tmux stay the default and leaves room for other backends as a later improvement. Crux should also parse the Program Status Protocol (`OSC 7501`) from the output stream on any backend, replacing screen-scraped agent state with structured `working` / `blocked` / `done` / `error` reports.
+**Contributing to Crux.** Changes Junto needs from Crux go upstream to hivecommons/crux rather than into a Junto-owned fork. The first is terminal backends: Crux has a partial `TerminalSession` interface (`agent/terminal.go`) for reading panes and sending keys, but 58 non-test files reference tmux and 24 call sites run tmux lifecycle commands directly. Widening that interface to cover session lifecycle (create, kill, set environment, stream logs) lets tmux stay the default and leaves room for other backends as a later improvement. Crux should also parse the Program Status Protocol (`OSC 7501`) from the output stream on any backend, replacing screen-scraped agent state with structured `working` / `blocked` / `done` / `error` reports.
 
 ## Baton on Kubernetes
 
@@ -361,7 +362,7 @@ Start with a thin, read-only Knowtorious, then the engine, then governed knowled
 | 1 · Knowtorious v0 | Read-only `list` / `get` / `search` over the `.knowtorious/` markdown vault, with `--json`; an MCP server with the same three operations; a Claude Code plugin whose session-start primer is only a table of contents (entry ids and titles, no content); import from `.spektacular/knowledge` | An agent completes a task by fetching only the entries it needs, with no knowledge in `AGENTS.md` or `CLAUDE.md` |
 | 2 · Baton | Rebuild from Spektacular: library, CLI, MCP and Claude Code plugin; InteractionContract; Spektacular's flows as the engineering pack; add to `junto-spec` only the schemas Baton actually needs (e.g. Actor, Evidence) | Spec to merged PR with four-eyes enforced by the platform |
 | 3 · Knowtorious v1 | Agents `propose` drafts that are approved through a Baton four-eyes gate; then spaces and grants | No entry is approved by its author; an agent reads only what its contract declares |
-| 4 · Full loop | Support and product packs, a support desk adapter, WorkItem links; Ledger, Broker, Intake and Governor extracted; Crux lifecycle interface | A ticket becomes a fix and the customer is told, on one signed evidence chain |
+| 4 · Full loop | Support and product packs, a support desk adapter, WorkItem links; Ledger, Broker, Intake and Governor extracted; Crux lifecycle interface, contributed upstream | A ticket becomes a fix and the customer is told, on one signed evidence chain |
 | 5 · Earned autonomy | Warden trust records with automatic demotion; human-approved promotions, agent-plus-agent review, parallel nodes, shareable packs; controllers and multi-cluster | Autonomy changes driven by evidence, not configuration |
 
 **First milestone (laptop, no Kubernetes):** phases 1 and 2. In a Claude Code session, the agent pulls only the Knowtorious entries it needs, works through a Baton workflow, and Baton will not pass the approval node until a different principal (the human) signs off.
