@@ -26,6 +26,7 @@ The goal is one control plane that can run any actor-based workflow with a verif
 - Start with product, engineering and customer support workflows, and use them to build Junto itself.
 - Let every step be done by a Human, an Assisted human or an Agent, chosen per step and changeable without redesign.
 - Be Kubernetes-native: CRDs, controllers, RBAC, namespaces as tenants, GitOps-friendly.
+- Keep pace with agentic development: adopt new agent tools, protocols, models and runtimes as adapters, without changing the core.
 - Make trust measurable: every transition produces evidence, and autonomy is earned from that evidence.
 
 **Non-goals for v1**
@@ -41,7 +42,8 @@ The goal is one control plane that can run any actor-based workflow with a verif
 3. **No self-approval.** The approver is always a different principal from the author.
 4. **Workflows are config.** The engine knows nothing about specs, tickets or PRs (Baton's rule).
 5. **Fail closed, record everything.** A missing policy, credential or evidence item blocks the step and is logged.
-6. **Unix philosophy.** Each component is one binary that does one job, works alone, and composes with the others only through files, JSON, exit codes and MCP.
+6. **Unix philosophy.** Each component is one binary that does one job, works alone, and composes with the others only through files, JSON, exit codes and agent protocols (MCP today).
+7. **Evolve with agents.** Agents, their tools and their protocols change quickly, so the core depends on none of them. Contracts describe outcomes, not prompts or tools. Agent harnesses (Claude Code first), protocols (MCP today), models and runtimes (Crux first) are adapters at the edge that can be added or replaced. As agents become more capable they take on more steps by earning trust from evidence, not through a redesign.
 
 ## Actor model
 
@@ -185,11 +187,11 @@ Each component lives in its own repo in the `junto-labs` org. Each one is a sing
 3. **Text in, JSON out.** Every command reads files or stdin and writes human text by default, `--json` on request. Exit code 0 means pass, 1 means fail, 2 means usage error. Any tool can then act as a Baton gate.
 4. **Plain files first.** Default state is a local folder (`.baton/`, `.knowtorious/`, in the repo by default) that you can diff and review. Postgres, object storage or CRDs are opt-in backends behind the same interface.
 5. **Absent neighbours are fine.** With no Warden, Baton reads a local policy file. With no Ledger, evidence goes to a JSONL file. With no Broker, side effects are printed as a plan for a human to run.
-6. **Four faces, one core.** Each binary has a CLI, an `mcp` subcommand that serves the same operations to agents, a Claude Code plugin, and optionally a `controller` subcommand with a Helm chart.
+6. **Four faces, one core.** Each binary has a CLI, an `mcp` subcommand that serves the same operations to agents, plugins for agent harnesses (Claude Code first), and optionally a `controller` subcommand with a Helm chart.
 
 **Repos**
 
-| Repo | Origin | Its one job | Runs standalone as | Claude Code |
+| Repo | Origin | Its one job | Runs standalone as | Agent harness (Claude Code first) |
 | --- | --- | --- | --- | --- |
 | `baton` | Import of [Spektacular](https://github.com/hivecommons/spektacular), rebuilt | Workflow definitions and run state | `baton next`, `baton pass` over `.baton/` | Plugin: skill, `/baton` commands, MCP |
 | `knowtorious` | New | Scoped, access-controlled knowledge | `knowtorious search` over a markdown vault | Plugin: MCP tools, session-start primer |
