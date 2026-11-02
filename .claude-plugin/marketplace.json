@@ -1,0 +1,14 @@
+{
+  "name": "junto",
+  "description": "Claude Code plugins for the Junto Community Edition.",
+  "owner": {
+    "name": "Junto Labs"
+  },
+  "plugins": [
+    {
+      "name": "knowtorious",
+      "source": "./plugins/knowtorious",
+      "description": "Project knowledge on demand: a session-start table of contents plus list, get and search MCP tools."
+    }
+  ]
+}
