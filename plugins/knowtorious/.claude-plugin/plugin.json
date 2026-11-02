@@ -1,0 +1,11 @@
+{
+  "name": "knowtorious",
+  "version": "0.1.1",
+  "description": "Project knowledge on demand: a session-start table of contents plus list, get and search MCP tools over a .knowtorious/ vault.",
+  "author": {
+    "name": "Junto Labs"
+  },
+  "homepage": "https://github.com/junto-labs/junto",
+  "repository": "https://github.com/junto-labs/junto",
+  "license": "SEE LICENSE IN https://github.com/junto-labs/junto/blob/main/LICENSE"
+}

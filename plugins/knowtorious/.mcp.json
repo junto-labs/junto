@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "knowtorious": {
+      "command": "kt",
+      "args": ["mcp"]
+    }
+  }
+}

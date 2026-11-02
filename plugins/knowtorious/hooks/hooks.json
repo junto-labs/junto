@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v kt >/dev/null 2>&1 && kt primer --quiet || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
