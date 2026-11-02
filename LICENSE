@@ -1,0 +1,47 @@
+Junto Community Edition License
+
+Copyright (c) 2026 Junto Labs. All rights reserved.
+
+This licence covers the compiled Junto binaries, container images and
+plugins that Junto Labs publishes for the Community Edition (the
+"Software"). It does not grant any rights to Junto's source code.
+
+1. Grant. Junto Labs grants you a free, non-exclusive, non-transferable,
+   revocable licence to install and use the Software, including for your
+   own internal commercial purposes.
+
+2. Restrictions. You may not:
+   a. sell, resell, rent, lease or sublicense the Software;
+   b. offer the Software, or a service whose value comes substantially from
+      it, to third parties as a hosted or managed service;
+   c. reverse engineer, decompile or disassemble the Software, except to the
+      extent applicable law expressly permits it despite this restriction;
+   d. remove or alter any licence, copyright or other notice in the Software;
+   e. redistribute the Software, except unmodified copies within your own
+      organisation.
+
+3. Plugins. Plugin files (for example skills, commands and hooks) are
+   readable by design. You may read and adapt them for your own use with the
+   Software, but the restrictions in section 2 still apply.
+
+4. Third-party software. Third-party components included with the Software
+   are licensed under their own terms, listed in the accompanying NOTICE
+   file. Nothing in this licence limits your rights under those terms.
+
+5. Feedback. If you send Junto Labs feedback or suggestions, Junto Labs may
+   use them without obligation to you.
+
+6. Termination. This licence ends automatically if you breach it. On
+   termination you must stop using and delete the Software.
+
+7. Changes. Junto Labs may publish new versions of this licence. Each
+   release of the Software is covered by the version shipped with it.
+
+8. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+
+9. Limitation of liability. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
+   EVENT SHALL JUNTO LABS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+   OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
