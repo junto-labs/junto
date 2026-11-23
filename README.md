@@ -1,6 +1,6 @@
 # Junto Community Edition
 
-Junto is a trust-first platform for work that humans and agents share, with a verifiable record of who did what and under whose authority. The Community Edition is free to use under the [Junto Community Edition License](LICENSE). Junto's source is private; this repo holds releases, the Claude Code plugin marketplace and issues.
+Junto is a trust-first platform for work that humans and agents share, with a verifiable record of who did what and under whose authority. The Community Edition is free to use under the [Junto Community Edition License](LICENSE). Junto's source is private; this repo holds releases, the plugin marketplace for Claude Code and Codex, and issues.
 
 More at [juntolabs.dev](https://juntolabs.dev).
 
@@ -17,7 +17,16 @@ Scoped knowledge for people and agents, read from a `.knowtorious/` markdown vau
 /plugin install knowtorious@junto
 ```
 
-The plugin adds a session-start table of contents (entry ids and titles, never content) and an MCP server with `list`, `get` and `search`. Without `kt` or a vault, it does nothing.
+**Codex plugin.** With `kt` on your `PATH`:
+
+```bash
+codex plugin marketplace add junto-labs/junto
+codex plugin add knowtorious@junto
+```
+
+Codex asks you to trust the plugin's hook before it runs.
+
+Each plugin adds a session-start table of contents (entry ids and titles, never content) and an MCP server with `list`, `get` and `search`. Without `kt` or a vault, it does nothing.
 
 ## Issues and feedback
 

@@ -1,0 +1,23 @@
+{
+  "name": "knowtorious",
+  "version": "0.1.1",
+  "description": "Project knowledge on demand: a session-start table of contents plus list, get and search MCP tools over a .knowtorious/ vault.",
+  "author": {
+    "name": "Junto Labs",
+    "url": "https://juntolabs.dev"
+  },
+  "homepage": "https://github.com/junto-labs/junto",
+  "repository": "https://github.com/junto-labs/junto",
+  "license": "SEE LICENSE IN https://github.com/junto-labs/junto/blob/main/LICENSE",
+  "keywords": ["knowledge", "context", "mcp"],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Knowtorious",
+    "shortDescription": "Project knowledge on demand",
+    "longDescription": "Loads a table of contents of the project's .knowtorious/ vault at session start (entry ids and titles, never content) and serves list, get and search over MCP, so the agent fetches only the entries a task needs. Requires the kt binary on your PATH; without kt or a vault it does nothing.",
+    "developerName": "Junto Labs",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "websiteURL": "https://juntolabs.dev"
+  }
+}
