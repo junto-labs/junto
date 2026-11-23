@@ -1,0 +1,19 @@
+{
+  "name": "junto",
+  "interface": {
+    "displayName": "Junto Community Edition"
+  },
+  "plugins": [
+    {
+      "name": "knowtorious",
+      "source": {
+        "source": "local",
+        "path": "./plugins/knowtorious"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
